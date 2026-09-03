@@ -8,7 +8,7 @@
 * Matías Sepúlveda  
 * Vicente Cosio  
 * Marcela Manzor  
-* Catalina  
+* Catalina Garrido
 
 ---
 
