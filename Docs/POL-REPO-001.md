@@ -8,7 +8,8 @@
 * Matías Sepúlveda  
 * Vicente Cosio  
 * Marcela Manzor  
-* Catalina Garrido
+* Catalina Garrido  
+* Franco Pérez (@DonnyA32)
 
 ---
 
@@ -28,6 +29,7 @@
 | **DevOps / Cloud Engineer** | Gestionar los archivos de flujo de trabajo CI/CD (`.github/workflows/`), automatizaciones del pipeline y reglas de infraestructura. |
 | **Release Manager** | Autorizar y generar tags semánticos (`vX.Y.Z`) firmados, validar el inventario SBOM y orquestar despliegues a producción. |
 | **Secret Custodian** | Administrar y auditar el acceso a credenciales, tokens y variables en entornos seguros (Vault / GitHub Secrets). |
+| **Security Reviewer / CI Security — Franco Pérez (@DonnyA32)** | Revisar cambios en `.github/workflows/`, permisos del pipeline, secretos, dependencias y controles SAST/SCA antes de aprobar cambios de CI/CD. |
 
 ---
 
