@@ -8,10 +8,6 @@
 * Matías Sepúlveda  
 * Vicente Cosio  
 * Marcela Manzor  
-* Catalina Garrido  
-* Franco Pérez (@DonnyA32)
-
----
 
 ## 1. Alcance y Objetivos
 
@@ -26,7 +22,7 @@
 |---|---|
 | **Developer** | Escribir código seguro, firmar commits con claves GPG/SSH, solucionar hallazgos de SAST/Secret Scanning y trabajar en ramas `feature/*`. |
 | **Code Owner / Reviewer** | Revisar y aprobar o rechazar Pull Requests sobre componentes específicos, velar por la calidad del código y mantener las reglas en `CODEOWNERS`. |
-| **DevOps / Cloud Engineer** | Gestionar los archivos de flujo de trabajo CI/CD (`.github/workflows/`), automatizaciones del pipeline y reglas de infraestructura. |
+| **DevOps / CI Security — Franco Pérez** | Gestionar y revisar los archivos de flujo de trabajo CI/CD (`.github/workflows/`), verificar permisos del pipeline, dependencias, secretos y controles SAST/SCA. |
 | **Release Manager** | Autorizar y generar tags semánticos (`vX.Y.Z`) firmados, validar el inventario SBOM y orquestar despliegues a producción. |
 | **Secret Custodian** | Administrar y auditar el acceso a credenciales, tokens y variables en entornos seguros (Vault / GitHub Secrets). |
 | **Security Reviewer / CI Security — Franco Pérez (@DonnyA32)** | Revisar cambios en `.github/workflows/`, permisos del pipeline, secretos, dependencias y controles SAST/SCA antes de aprobar cambios de CI/CD. |
