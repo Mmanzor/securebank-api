@@ -1,4 +1,11 @@
+# Equipo SecurePipeline
+# @Mmanzor  = Marcela Manzor
+# @DonnyA32 = Franco Pérez
+
 * @Mmanzor
 * @ByRetro
 * @DonnyA32
 * @Pinguinitoo
+
+# Seguridad del pipeline CI: Franco Pérez revisa cambios de workflows
+.github/workflows/ @DonnyA32 @Mmanzor
