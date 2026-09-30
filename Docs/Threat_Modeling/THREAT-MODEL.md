@@ -47,7 +47,7 @@ Este escenario corresponde principalmente a **Elevation of Privilege** y materia
 - **Matías Sepúlveda — Arquitectura y Planificación (Plan):** mantiene DFD, trust boundaries, amenazas y requisitos.
 - **Vicente Cosio — Desarrollo y Calidad (Code / Build):** implementa y verifica controles preventivos en código, build y correcciones de implementación.
 - **Marcela Manzor — Pruebas y Aprobación (Test / Release):** valida criterios de aceptación, autorización, DAST y trazabilidad de release.
-
+- **Catalina Garrido — Despliegue y Operaciones (Deploy / Operate / Monitor):** aplica hardening, protección operacional, gestión de secretos, logging y monitoreo.
+- **Franco Pérez — Seguridad del Pipeline (Security Test / CI Security):** revisa SAST, SCA, secret scanning, dependencias y controles de seguridad asociados al pipeline.
 
 La asignación es principal; el modelo sigue el principio DevSecOps de responsabilidad compartida.
-
