@@ -1,0 +1,13 @@
+{
+  "name": "securebank-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SecureBank API - proyecto transversal DevSecOps UBO",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
