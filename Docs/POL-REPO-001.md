@@ -8,8 +8,8 @@
 * Matías Sepúlveda  
 * Vicente Cosio  
 * Marcela Manzor  
-* Catalina Garrido
-* Franco Pérez
+* Catalina Garrido  
+* Franco Pérez (@DonnyA32)
 
 ---
 
@@ -26,7 +26,7 @@
 |---|---|
 | **Developer** | Escribir código seguro, firmar commits con claves GPG/SSH, solucionar hallazgos de SAST/Secret Scanning y trabajar en ramas `feature/*`. |
 | **Code Owner / Reviewer** | Revisar y aprobar o rechazar Pull Requests sobre componentes específicos, velar por la calidad del código y mantener las reglas en `CODEOWNERS`. |
-| **DevOps / CI Security — Franco Pérez** | Gestionar y revisar los archivos de flujo de trabajo CI/CD (`.github/workflows/`), verificar permisos del pipeline, dependencias, secretos y controles SAST/SCA. |
+| **DevOps / CI Security — Franco Pérez (@DonnyA32)** | Gestionar y revisar los archivos de flujo de trabajo CI/CD (`.github/workflows/`), verificar permisos del pipeline, dependencias, secretos y controles SAST/SCA. |
 | **Release Manager** | Autorizar y generar tags semánticos (`vX.Y.Z`) firmados, validar el inventario SBOM y orquestar despliegues a producción. |
 | **Secret Custodian** | Administrar y auditar el acceso a credenciales, tokens y variables en entornos seguros (Vault / GitHub Secrets). |
 
@@ -44,6 +44,7 @@
 
 ### Q2: ¿Quién puede modificar los pipelines CI/CD (`.github/workflows/`)?
 * **Propiedad Restringida:** La modificación de archivos dentro de `.github/workflows/` requiere la revisión y aprobación explícita de los **Code Owners de DevOps/Seguridad**.
+* **Responsable principal de revisión:** Franco Pérez (@DonnyA32), en su rol de **DevOps / CI Security**.
 * **Controles:** Bloqueo de ejecuciones de scripts o acciones de GitHub no verificadas. Los PRs provenientes de un *fork* externo no tendrán acceso a los secretos del entorno de producción sin aprobación previa de ejecución.
 
 ### Q3: ¿Quién puede crear releases y etiquetar versiones?
@@ -78,9 +79,9 @@
 
 ## 5. Procedimiento ante Excepciones e Historial de Git
 
-1. **Compromiso Accidental de Secretos:** 
+1. **Compromiso Accidental de Secretos:**
    * Borrar un archivo comprometido mediante un nuevo commit **no elimina el secreto del historial** (el historial de Git es inmutable).
-   * En caso de fuga: 
+   * En caso de fuga:
      1. **Rotar de inmediato la clave/secreto expuesto** (considerándolo comprometido).
      2. Sanitizar el historial utilizando herramientas como `git filter-repo` o `BFG Repo-Cleaner`.
 2. **Revisión de la Política:** Esta política se revisará formalmente al inicio de cada ciclo de desarrollo o de forma semestral.

@@ -58,4 +58,5 @@ Cada vez que los datos atraviesan una frontera de confianza, SecureBank debe **v
 ## Responsabilidad principal
 
 **Arquitectura y Planificación (Plan): Matías Sepúlveda.**  
+**Revisión de seguridad: Franco Pérez (@DonnyA32) — Security Test / CI Security.**  
 Revisión cruzada: todo el equipo bajo el principio de responsabilidad compartida.
