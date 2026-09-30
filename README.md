@@ -10,6 +10,7 @@ Proyecto transversal **SecurePipeline** de la asignatura Sistemas Automatizados 
 - Vicente Cosio — Desarrollo y Calidad (**Code / Build**)
 - Marcela Manzor — Pruebas y Aprobación (**Test / Release**)
 - Catalina Garrido — Despliegue y Operaciones (**Deploy / Operate / Monitor**)
+- Franco Pérez (**@DonnyA32**) — Seguridad del Pipeline (**Security Test / CI Security**)
 
 ## Entregas documentadas
 
@@ -27,5 +28,7 @@ Flujo:
 `checkout → install → build → unit tests → artifact`
 
 El build genera `dist/` y GitHub Actions lo publica como artefacto nombrado con el SHA del commit, con retención de 7 días.
+
+Franco Pérez queda a cargo de la **revisión de seguridad del pipeline CI**, incluyendo permisos del workflow, dependencias reproducibles y preparación del futuro job `security-test` de SAST.
 
 > La seguridad es responsabilidad compartida durante todo el SDLC. Las categorías del equipo indican el foco principal de cada integrante.
