@@ -12,6 +12,8 @@
 
 \- Catalina Garrido
 
+\- Franco Perez
+
 
 
 ###### Organización del Trabajo y Responsabilidades (DevSecOps)
@@ -27,5 +29,7 @@ En cumplimiento con las directrices de la Sesión 1 del curso, la responsabilida
 3\. Pruebas y Aprobación (Test / Release): Responsable del análisis dinámico DAST, firma de artefactos y SBOM.
 
 4\. Despliegue y Operaciones (Deploy / Operate / Monitor): Responsable de IaC scanning, hardening de contenedores, gestión de secretos y monitoreo continuo de eventos.
+
+5\. Seguridad del Pipeline (Security Test / CI Security): Responsable del análisis SAST y SCA, escaneo de secretos, revisión de dependencias, permisos del workflow y controles de seguridad del pipeline CI/CD.
 
 
