@@ -86,7 +86,10 @@ jobs:
           ARCHIVE="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           BASE_URL="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
 
+          echo "Descargando ejecutable de Trivy..."
           curl -fsSL -o "$ARCHIVE" "$BASE_URL/$ARCHIVE"
+
+          echo "Descargando checksums de Trivy..."
           curl -fsSL -o trivy_checksums.txt "$BASE_URL/trivy_${TRIVY_VERSION}_checksums.txt"
 
           grep -F "$ARCHIVE" trivy_checksums.txt > trivy_checksum.txt
