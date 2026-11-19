@@ -14,8 +14,51 @@ permissions:
   contents: read
 
 jobs:
+
+  secret-scan:
+    name: Secret Scan - Gitleaks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GITLEAKS_VERSION="8.30.1"
+          ARCHIVE="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+
+          echo "Descargando Gitleaks..."
+          curl -fsSL --retry 3 -o "$ARCHIVE" "$BASE_URL/$ARCHIVE"
+
+          echo "Descargando checksums..."
+          curl -fsSL --retry 3 -o gitleaks_checksums.txt \
+            "$BASE_URL/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+
+          echo "Verificando SHA-256..."
+          grep -F "$ARCHIVE" gitleaks_checksums.txt > gitleaks_checksum.txt
+          test -s gitleaks_checksum.txt
+          sha256sum --check gitleaks_checksum.txt
+
+          echo "Instalando Gitleaks..."
+          tar -xzf "$ARCHIVE" gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+
+          gitleaks version
+
+      - name: Scan repository
+        run: |
+          gitleaks git --config .gitleaks.toml --redact --exit-code 1 --verbose .
+
   build-test:
     name: build-test
+    needs: secret-scan
     runs-on: ubuntu-latest
 
     steps:
@@ -47,6 +90,7 @@ jobs:
 
   sast:
     name: SAST - Semgrep
+    needs: secret-scan
     runs-on: ubuntu-latest
 
     steps:
@@ -74,6 +118,7 @@ jobs:
           if-no-files-found: warn
   sca:
     name: SCA - Trivy
+    needs: secret-scan
     runs-on: ubuntu-latest
 
     steps:
