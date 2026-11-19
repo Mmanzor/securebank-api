@@ -82,7 +82,7 @@ jobs:
 
       - name: Install Trivy
         run: |
-          TRIVY_VERSION="0.58.2"
+          TRIVY_VERSION="0.76.2"
           ARCHIVE="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           BASE_URL="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
 
