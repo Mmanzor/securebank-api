@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'feature/**'
+      - 'feat/**'
   pull_request:
     branches:
       - main
@@ -43,3 +44,31 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  sast:
+    name: SAST - Semgrep
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run SAST analysis
+        run: semgrep scan --config auto --error --json --output semgrep-report.json
+
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+          retention-days: 7
+          if-no-files-found: warn
