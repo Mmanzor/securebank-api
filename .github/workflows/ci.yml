@@ -72,3 +72,47 @@ jobs:
           path: semgrep-report.json
           retention-days: 7
           if-no-files-found: warn
+  sca:
+    name: SCA - Trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install Trivy
+        run: |
+          TRIVY_VERSION="0.58.2"
+          ARCHIVE="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          BASE_URL="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+
+          curl -fsSL -o "$ARCHIVE" "$BASE_URL/$ARCHIVE"
+          curl -fsSL -o trivy_checksums.txt "$BASE_URL/trivy_${TRIVY_VERSION}_checksums.txt"
+
+          grep -F "$ARCHIVE" trivy_checksums.txt > trivy_checksum.txt
+          sha256sum --check trivy_checksum.txt
+
+          tar -xzf "$ARCHIVE" trivy
+          sudo install -m 0755 trivy /usr/local/bin/trivy
+
+          trivy --version
+
+      - name: Scan dependencies
+        run: |
+          trivy fs --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-report.json --exit-code 1 .
+
+      - name: Generate SBOM
+        if: always()
+        run: |
+          trivy fs --format cyclonedx --output sbom.cdx.json .
+
+      - name: Upload SCA reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sca-trivy-reports
+          path: |
+            trivy-report.json
+            sbom.cdx.json
+          retention-days: 7
+          if-no-files-found: warn
