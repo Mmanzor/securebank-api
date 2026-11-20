@@ -1,0 +1,44 @@
+
+env:
+  contexts:
+    - name: SecureBank
+      urls:
+        - http://host.docker.internal:3001
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: openapi
+    parameters:
+      apiFile: /zap/wrk/openapi.yaml
+      targetUrl: http://host.docker.internal:3001
+  
+  - type: requestor
+    requests:
+      - url: http://host.docker.internal:3001/users/user-01
+        method: GET
+        responseCode: 401
+
+      - url: http://host.docker.internal:3001/users/user-02
+        method: GET
+        headers:
+          - "Authorization: Bearer lab-token-01"
+        responseCode: 403
+
+      - url: http://host.docker.internal:3001/users/user-01
+        method: GET
+        headers:
+          - "Authorization: Bearer lab-token-01"
+        responseCode: 200
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk/Docs/Evidencias/Sesion_08
+      reportFile: zap-openapi.json

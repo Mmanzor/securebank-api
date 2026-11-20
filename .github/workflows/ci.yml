@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'feature/**'
+      - 'feat/**'
   pull_request:
     branches:
       - main
@@ -13,16 +14,59 @@ permissions:
   contents: read
 
 jobs:
-  build-test:
-    name: build-test
+
+  secret-scan:
+    name: Secret Scan - Gitleaks
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GITLEAKS_VERSION="8.30.1"
+          ARCHIVE="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+
+          echo "Descargando Gitleaks..."
+          curl -fsSL --retry 3 -o "$ARCHIVE" "$BASE_URL/$ARCHIVE"
+
+          echo "Descargando checksums..."
+          curl -fsSL --retry 3 -o gitleaks_checksums.txt \
+            "$BASE_URL/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+
+          echo "Verificando SHA-256..."
+          grep -F "$ARCHIVE" gitleaks_checksums.txt > gitleaks_checksum.txt
+          test -s gitleaks_checksum.txt
+          sha256sum --check gitleaks_checksum.txt
+
+          echo "Instalando Gitleaks..."
+          tar -xzf "$ARCHIVE" gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+
+          gitleaks version
+
+      - name: Scan repository
+        run: |
+          gitleaks git --config .gitleaks.toml --redact --exit-code 1 --verbose .
+
+  build-test:
+    name: build-test
+    needs: secret-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20'
           cache: 'npm'
@@ -37,9 +81,149 @@ jobs:
         run: npm test
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: dist-${{ github.sha }}
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  sast:
+    name: SAST - Semgrep
+    needs: secret-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run SAST analysis
+        run: semgrep scan --config auto --error --json --output semgrep-report.json
+
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+          retention-days: 7
+          if-no-files-found: warn
+  sca:
+    name: SCA - Trivy
+    needs: secret-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install Trivy
+        run: |
+          TRIVY_VERSION="0.76.2"
+          ARCHIVE="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          BASE_URL="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+
+          echo "Descargando ejecutable de Trivy..."
+          curl -fsSL -o "$ARCHIVE" "$BASE_URL/$ARCHIVE"
+
+          echo "Descargando checksums de Trivy..."
+          curl -fsSL -o trivy_checksums.txt "$BASE_URL/trivy_${TRIVY_VERSION}_checksums.txt"
+
+          grep -F "$ARCHIVE" trivy_checksums.txt > trivy_checksum.txt
+          sha256sum --check trivy_checksum.txt
+
+          tar -xzf "$ARCHIVE" trivy
+          sudo install -m 0755 trivy /usr/local/bin/trivy
+
+          trivy --version
+
+      - name: Scan dependencies
+        run: |
+          trivy fs --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-report.json --exit-code 1 .
+
+      - name: Generate SBOM
+        if: always()
+        run: |
+          trivy fs --format cyclonedx --output sbom.cdx.json .
+
+      - name: Upload SCA reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sca-trivy-reports
+          path: |
+            trivy-report.json
+            sbom.cdx.json
+          retention-days: 7
+          if-no-files-found: warn
+
+  dast-zap:
+    name: DAST - OWASP ZAP
+    needs: [secret-scan, build-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Build API image
+        run: docker build -t securebank-api:dast .
+
+      - name: Start API container
+        run: |
+          docker run -d --name securebank-dast \
+            -p 127.0.0.1:3001:3000 \
+            securebank-api:dast
+
+      - name: Wait for API
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in $(seq 1 30); do
+            echo "Intento ${i}/30: esperando SecureBank API..."
+
+            if curl -fsS http://127.0.0.1:3001/health; then
+              echo "SecureBank API disponible"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs securebank-dast
+          exit 1
+
+      - name: Run OWASP ZAP OpenAPI
+        shell: bash
+        run: |
+          mkdir -p dast-reports
+          chmod 777 dast-reports
+
+          docker run --rm \
+            --network host \
+            -v "${PWD}:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -autorun /zap/wrk/zap-openapi-ci.yaml
+
+      - name: Upload DAST reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dast-zap-reports
+          path: dast-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Stop API container
+        if: always()
+        run: docker rm -f securebank-dast || true

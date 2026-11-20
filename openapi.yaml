@@ -1,0 +1,54 @@
+
+openapi: 3.0.3
+
+info:
+  title: SecureBank API
+  version: 1.0.0
+  description: API de laboratorio para pruebas DevSecOps y DAST.
+
+servers:
+  - url: http://host.docker.internal:3001
+
+paths:
+  /:
+    get:
+      summary: Información general de la API
+      responses:
+        '200':
+          description: API disponible
+
+  /health:
+    get:
+      summary: Estado de salud de la API
+      responses:
+        '200':
+          description: Servicio operativo
+
+  /users/{id}:
+    get:
+      summary: Consultar un usuario
+      description: Requiere autorización del propietario.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: user-01
+      responses:
+        '200':
+          description: Usuario autorizado
+        '401':
+          description: No autenticado
+        '403':
+          description: Acceso prohibido
+        '404':
+          description: Usuario no encontrado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
