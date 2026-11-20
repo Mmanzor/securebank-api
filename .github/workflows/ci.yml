@@ -164,3 +164,66 @@ jobs:
             sbom.cdx.json
           retention-days: 7
           if-no-files-found: warn
+
+  dast-zap:
+    name: DAST - OWASP ZAP
+    needs: [secret-scan, build-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Build API image
+        run: docker build -t securebank-api:dast .
+
+      - name: Start API container
+        run: |
+          docker run -d --name securebank-dast \
+            -p 127.0.0.1:3001:3000 \
+            securebank-api:dast
+
+      - name: Wait for API
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in $(seq 1 30); do
+            echo "Intento ${i}/30: esperando SecureBank API..."
+
+            if curl -fsS http://127.0.0.1:3001/health; then
+              echo "SecureBank API disponible"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs securebank-dast
+          exit 1
+
+      - name: Run OWASP ZAP OpenAPI
+        shell: bash
+        run: |
+          mkdir -p dast-reports
+          chmod 777 dast-reports
+
+          docker run --rm \
+            --network host \
+            -v "${PWD}:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -autorun /zap/wrk/zap-openapi-ci.yaml
+
+      - name: Upload DAST reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dast-zap-reports
+          path: dast-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Stop API container
+        if: always()
+        run: docker rm -f securebank-dast || true
