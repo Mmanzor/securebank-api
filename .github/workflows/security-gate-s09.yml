@@ -1,0 +1,51 @@
+name: S09 - Security Policy
+
+on:
+  push:
+    branches:
+      - feature/security-gate-s09
+    paths:
+      - security/s09/**
+      - .github/workflows/security-gate-s09.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - security/s09/**
+      - .github/workflows/security-gate-s09.yml
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar OPA 1.4.2
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/open-policy-agent/opa/releases/download/v1.4.2/opa_linux_amd64_static \
+            --output "$RUNNER_TEMP/opa"
+          echo '2c0ccdbbe0b8e2a5d12d9c42d92f1f34f494ffb32d1f3c4ddc36101be637d66f  '"$RUNNER_TEMP/opa" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/opa"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Probar reglas y códigos de salida
+        run: |
+          python3 -B -m unittest discover -s security/s09
+          opa test --verbose security/s09
+          mkdir gate-evidence
+          bash security/s09/evaluate.sh security/s09/fixtures/pass/findings.json > gate-evidence/pass.txt
+          blocked_status=0
+          bash security/s09/evaluate.sh security/s09/fixtures/block/findings.json > gate-evidence/block.txt \
+            || blocked_status=$?
+          test "$blocked_status" -eq 1
+
+      - name: Guardar evidencia de evaluación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-gate-${{ github.sha }}
+          path: gate-evidence/

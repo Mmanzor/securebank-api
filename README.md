@@ -18,6 +18,7 @@ Proyecto transversal **SecurePipeline** de la asignatura Sistemas Automatizados 
 - **Sesión 02:** `Docs/POL-REPO-001.md` — política de repositorios seguros.
 - **Sesión 03:** `Docs/Threat_Modeling/` — DFD, STRIDE, controles y security stories.
 - **Sesión 04:** `Docs/Pipeline_CI/` — arquitectura CI v1.0 y análisis del pipeline inseguro.
+- **Sesión 09:** [Security Policy v1.0](security/s09/README.md) — política, consolidación de reportes y pruebas del gate.
 
 ## Pipeline CI v1.0
 
