@@ -125,6 +125,7 @@ jobs:
             --all --include='src/**/*.js' --reporter=json-summary --reports-dir=reports node --test
 
       - name: Consolidar reportes y aplicar el gate
+        shell: bash
         run: |
           python3 security/s09/consolidate.py \
             --semgrep reports/semgrep.json --trivy reports/trivy.json --zap reports/zap.json \
