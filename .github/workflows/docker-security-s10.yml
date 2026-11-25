@@ -1,0 +1,87 @@
+name: S10 - Docker y Trivy
+
+on:
+  push:
+    branches:
+      - main
+      - feature/docker-hardening-s10
+    paths:
+      - .dockerignore
+      - .github/workflows/docker-security-s10.yml
+      - 'docker/**'
+      - '!docker/REPORT.md'
+      - 'src/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .dockerignore
+      - .github/workflows/docker-security-s10.yml
+      - 'docker/**'
+      - '!docker/REPORT.md'
+      - 'src/**'
+
+permissions:
+  contents: read
+
+jobs:
+  image-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir ambas imágenes
+        run: |
+          docker build -f docker/Dockerfile.v1 -t securebank:v1 .
+          docker build -f docker/Dockerfile.v2 -t securebank:v2-secure .
+
+      - name: Verificar ejecución y privilegios
+        run: |
+          mkdir -p evidence
+          bash docker/verify-image.sh v1 evidence
+          bash docker/verify-image.sh v2-secure evidence \
+            --read-only --cap-drop ALL --security-opt no-new-privileges
+          test "$(cat evidence/v1-user.txt)" = 'root (UID 0)'
+          test "$(cat evidence/v2-secure-user.txt)" = 'appuser (UID 10001)'
+
+      - name: Escanear las imágenes con la misma base de Trivy
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/trivy-cache"
+          for variant in v1 v2-secure; do
+            docker image save "securebank:$variant" --output "$RUNNER_TEMP/image.tar"
+            options=()
+            if [[ "$variant" == v2-secure ]]; then
+              options+=(--skip-db-update)
+            fi
+            docker run --rm \
+              --volume "$RUNNER_TEMP/image.tar:/input/image.tar:ro" \
+              --volume "$RUNNER_TEMP/trivy-cache:/cache" \
+              --volume "$GITHUB_WORKSPACE/evidence:/out" \
+              "$TRIVY_IMAGE" image --cache-dir /cache --input /input/image.tar \
+              --scanners vuln --list-all-pkgs --format json --output "/out/$variant-trivy.json" \
+              "${options[@]}"
+            docker run --rm \
+              --volume "$GITHUB_WORKSPACE/evidence:/out" \
+              "$TRIVY_IMAGE" convert --format table --severity HIGH,CRITICAL \
+              "/out/$variant-trivy.json" | tee "evidence/$variant-trivy.txt"
+          done
+
+      - name: Publicar tabla comparativa
+        shell: bash
+        run: |
+          python3 docker/measure.py evidence | tee evidence/comparison.md "$GITHUB_STEP_SUMMARY"
+
+      - name: Aplicar el umbral de criticidad a la imagen endurecida
+        run: jq --exit-status '."v2-secure".CRITICAL == 0' evidence/metrics.json
+
+      - name: Guardar evidencia de ambas imágenes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securebank-s10-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: warn
