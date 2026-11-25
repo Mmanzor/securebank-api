@@ -34,12 +34,20 @@ python3 security/s09/consolidate.py \
   bash security/s09/evaluate.sh findings.json
 ```
 
-El CI base compila y ejecuta pruebas unitarias. La API de este repositorio
-exporta funciones de Node.js y aún carece de un servicio HTTP para el que
-generar un reporte DAST. Los JSON de `fixtures/` son datos de prueba.
-El workflow de esta sesión valida la política con esos casos. Para usar el
-gate como requisito de promoción, primero deben existir los jobs que producen
-los reportes completos y el job de promoción debe depender de su resultado.
+## Integración con GitHub Actions
+
+El workflow `S09 - Security Policy` primero valida la política con los casos
+de `fixtures/`. Después, Gitleaks revisa los archivos del checkout, Semgrep
+analiza `src/`, Trivy evalúa el lockfile de npm, y c8 calcula la cobertura de
+líneas del código fuente. ZAP examina de forma pasiva la respuesta de
+`GET /health` en el servidor de prueba que se inicia en el propio runner.
+La política evalúa la exposición como pública para aplicar el umbral definido
+para la futura API, aunque el servidor de prueba solo escucha en loopback.
+
+El job de evaluación adjunta `findings.json`, `decision.json` y los reportes
+JSON del commit. Si falta un reporte o si OPA bloquea el cambio, ese job falla.
+Solo si pasa se genera el artefacto `staging-candidate-<SHA>`. El artefacto es
+un candidato de staging reproducible y se conserva dentro de GitHub Actions.
 
 ## Evidencia reproducible
 
