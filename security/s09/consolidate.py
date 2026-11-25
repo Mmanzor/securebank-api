@@ -34,9 +34,10 @@ def semgrep(report):
 def trivy(report):
     if report["SchemaVersion"] != 2:
         raise ValueError("se requiere SchemaVersion 2")
+    results = report.get("Results", []) if report.get("ArtifactType") == "filesystem" else report["Results"]
     findings = (
         item["Severity"]
-        for result in rows(report["Results"])
+        for result in rows(results)
         for item in rows(result.get("Vulnerabilities", []))
     )
     return summarize(findings, TRIVY)

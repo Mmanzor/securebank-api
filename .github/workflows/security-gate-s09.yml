@@ -6,12 +6,18 @@ on:
       - feature/security-gate-s09
     paths:
       - security/s09/**
+      - src/**
+      - tests/**
+      - package*.json
       - .github/workflows/security-gate-s09.yml
   pull_request:
     branches:
       - main
     paths:
       - security/s09/**
+      - src/**
+      - tests/**
+      - package*.json
       - .github/workflows/security-gate-s09.yml
 
 permissions:
@@ -49,3 +55,107 @@ jobs:
         with:
           name: security-gate-${{ github.sha }}
           path: gate-evidence/
+
+  security-gate:
+    name: Evaluar reportes reales con OPA
+    needs: policy-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Preparar reportes y herramientas
+        run: |
+          mkdir -p reports
+          npm ci
+          python3 -m venv "$RUNNER_TEMP/semgrep"
+          "$RUNNER_TEMP/semgrep/bin/pip" install 'semgrep==1.187.0'
+          curl --fail --silent --show-error --location \
+            https://github.com/open-policy-agent/opa/releases/download/v1.4.2/opa_linux_amd64_static \
+            --output "$RUNNER_TEMP/opa"
+          echo '2c0ccdbbe0b8e2a5d12d9c42d92f1f34f494ffb32d1f3c4ddc36101be637d66f  '"$RUNNER_TEMP/opa" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/opa"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Gitleaks · escanear archivos del commit
+        run: |
+          status=0
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --volume "$GITHUB_WORKSPACE/reports:/out" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f dir /repo \
+              --redact=100 --report-format=json --report-path=/out/gitleaks.json \
+              --exit-code=10 || status=$?
+          test "$status" -eq 0 || test "$status" -eq 10
+          test -s reports/gitleaks.json
+
+      - name: Semgrep · analizar código fuente
+        run: |
+          "$RUNNER_TEMP/semgrep/bin/semgrep" scan --strict --metrics=off \
+            --config security/s09/ci/semgrep.yml --json-output reports/semgrep.json src
+
+      - name: Trivy · analizar dependencias
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE/package-lock.json:/scan/package-lock.json:ro" \
+            --volume "$GITHUB_WORKSPACE/reports:/out" \
+            aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb fs --scanners vuln --format json --output /out/trivy.json /scan
+
+      - name: ZAP · revisar respuesta HTTP de prueba
+        run: |
+          node -e 'require("./src/http").createHealthServer().listen(3000, "127.0.0.1")' &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 5 --retry-connrefused http://127.0.0.1:3000/health
+          docker run --rm --network host --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp \
+            --volume "$GITHUB_WORKSPACE/reports:/zap/wrk" \
+            --volume "$GITHUB_WORKSPACE/security/s09/ci/zap.yml:/zap/plan.yml:ro" \
+            ghcr.io/zaproxy/zaproxy:2.17.0@sha256:9624669db72f54d86c4b46a7064518bd9bf79d8c61a4c31befa9923489f328af zap.sh -dir /tmp/zap -cmd -autorun /zap/plan.yml
+          test -s reports/zap.json
+
+      - name: Medir cobertura de líneas de todas las fuentes
+        run: |
+          npm exec --yes --package=c8@12.0.0 -- c8 \
+            --all --include='src/**/*.js' --reporter=json-summary --reports-dir=reports node --test
+
+      - name: Consolidar reportes y aplicar el gate
+        run: |
+          python3 security/s09/consolidate.py \
+            --semgrep reports/semgrep.json --trivy reports/trivy.json --zap reports/zap.json \
+            --gitleaks reports/gitleaks.json --coverage reports/coverage-summary.json \
+            --exposure public > reports/findings.json
+          bash security/s09/evaluate.sh reports/findings.json | tee reports/decision.json
+
+      - name: Guardar reportes y la decisión
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-reports-${{ github.sha }}
+          path: reports/*.json
+          if-no-files-found: warn
+
+  staging-candidate:
+    needs: security-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Construir candidato de staging
+        run: npm ci && npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staging-candidate-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error

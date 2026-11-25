@@ -21,6 +21,11 @@ class ConsolidationTests(unittest.TestCase):
         self.assertEqual(trivy(trivy_report), {"critical": 0, "high": 1, "medium": 0})
         self.assertEqual(zap(zap_report), {"critical": 0, "high": 1, "medium": 1})
 
+        self.assertEqual(
+            trivy({"SchemaVersion": 2, "ArtifactType": "filesystem"}),
+            {"critical": 0, "high": 0, "medium": 0},
+        )
+
         with self.assertRaises(ValueError):
             zap({"site": []})
 
