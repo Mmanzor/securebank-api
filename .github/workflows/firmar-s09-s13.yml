@@ -147,3 +147,5 @@ jobs:
                   summary.write(f"- Sesión {item['n']:02}: [{previous_commit}]({result['url']}) firmado y verificado.\n")
               print(f"SIGNED {item['n']:02} {previous_commit} {result['signature']['state']}", flush=True)
           PY
+
+# La rama de preparación aloja las configuraciones revisadas de cada sesión.
