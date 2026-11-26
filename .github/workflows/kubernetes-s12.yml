@@ -73,13 +73,14 @@ jobs:
           grep -Eq '^sha256:[0-9a-f]{64}$' s12-evidence/image-digest.txt
           cp k8s/hardened/*.yaml s12-evidence/deploy/
           cp k8s/exercise/*.yaml s12-evidence/exercise/
+          cp k8s/lab/client.yaml s12-evidence/client.yaml
           sed -i -E "s|localhost:5001/securebank@sha256:[0-9a-f]{64}|localhost:5001/securebank@$digest|g" \
-            s12-evidence/deploy/deployment.hardened.yaml s12-evidence/exercise/*-deployment.yaml
+            s12-evidence/deploy/deployment.hardened.yaml s12-evidence/exercise/*-deployment.yaml s12-evidence/client.yaml
 
       - name: Evaluar con kube-score y Kubesec
         shell: bash
         run: |
-          kube-score score --output-format json s12-evidence/deploy/*.yaml > s12-evidence/kube-score.json
+          kube-score score --output-format json s12-evidence/deploy/*.yaml s12-evidence/client.yaml > s12-evidence/kube-score.json
           for manifest in s12-evidence/deploy/deployment.hardened.yaml s12-evidence/exercise/*-deployment.yaml; do
             name=$(basename "$manifest" .yaml)
             kubesec scan "$manifest" > "s12-evidence/kubesec-$name.json"
@@ -98,6 +99,9 @@ jobs:
           kubectl apply --dry-run=server -f s12-evidence/exercise/
           kubectl apply -f s12-evidence/deploy/
           bash k8s/lab/verify.sh | tee s12-evidence/runtime.txt
+          kubectl apply -f s12-evidence/client.yaml
+          kubectl -n securebank wait --for=condition=complete job/securebank-probe --timeout=70s
+          kubectl -n securebank logs job/securebank-probe | tee s12-evidence/service.txt
           mv restricted.txt s12-evidence/
           kubectl -n securebank get deployments,services,pods,networkpolicies > s12-evidence/objects.txt
 

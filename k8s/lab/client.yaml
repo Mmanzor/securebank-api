@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: securebank-probe
+  namespace: securebank
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 45
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: lab-client
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      serviceAccountName: securebank-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: localhost:5001/securebank@sha256:6b0c81d914209caada8084eb5d8f1b7e8bbdc3274b854db74c6fbb81dad31100
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 96Mi
+              ephemeral-storage: 16Mi
+            limits:
+              cpu: 100m
+              memory: 96Mi
+              ephemeral-storage: 16Mi
+          command:
+            - node
+            - -e
+            - |
+              const assert = require("node:assert/strict");
+              fetch("http://securebank-api.securebank.svc.cluster.local:3000/health", {
+                signal: AbortSignal.timeout(6000)
+              }).then(async (response) => {
+                assert.equal(response.status, 200);
+                assert.deepEqual(await response.json(), { service: "securebank-api", status: "ok" });
+                console.log("El cliente autorizado recibió HTTP 200 mediante el Service");
+              });

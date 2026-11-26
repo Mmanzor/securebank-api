@@ -34,7 +34,7 @@ spec:
                     app.kubernetes.io/name: securebank-api
       containers:
         - name: api
-          image: localhost:5001/securebank@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          image: localhost:5001/securebank@sha256:6b0c81d914209caada8084eb5d8f1b7e8bbdc3274b854db74c6fbb81dad31100
           imagePullPolicy: Always
           ports:
             - name: http
