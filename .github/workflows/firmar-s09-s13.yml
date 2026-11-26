@@ -20,7 +20,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_MAIN: 8c3897672bdce3112644620cf35f1093cc6e264d
-          SIGNING_BRANCH: undefined
+          SIGNING_BRANCH: integracion/firmar-s09-s13-validado
           SOURCE_SESSIONS: '[{"n":9,"source":"feature/security-gate-s09","sha":"9e9f910e2e1957f48762cd58b7a6bbc3989dcd98","file":"security-gate-s09.yml","branch":"feature/sesion-09-firmada"},{"n":10,"source":"feature/docker-hardening-s10","sha":"af07d27004218aa115efe929c03f178b1bf26ace","file":"docker-security-s10.yml","branch":"feature/sesion-10-firmada"},{"n":11,"source":"feature/iac-security-s11","sha":"4679055117cb8de212e84b559cee591f4d665188","file":"iac.yml","branch":"feature/sesion-11-firmada"},{"n":12,"source":"feature/kubernetes-hardening-s12","sha":"9f54c5646c998e7ab24f8db34a95726d18d76204","file":"kubernetes-s12.yml","branch":"feature/sesion-12-firmada"},{"n":13,"source":"feature/supply-chain-s13","sha":"6667e338f858314b5374ef03b6a43a4dfd1074d2","file":"supply-chain-s13.yml","branch":"feature/sesion-13-firmada"}]'
         shell: bash
         run: |
@@ -59,7 +59,7 @@ jobs:
                   raise RuntimeError(result["errors"])
               return result["data"]
           
-          if repository != "Mmanzor/securebank-api" or target != "undefined":
+          if repository != "Mmanzor/securebank-api" or target != "integracion/firmar-s09-s13-validado":
               raise RuntimeError("Unexpected repository or signing branch")
           for ref, expected in [("main", main), (target, main)] + [
               (item["source"], item["sha"]) for item in sessions
