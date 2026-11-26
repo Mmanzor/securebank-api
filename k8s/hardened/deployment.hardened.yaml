@@ -35,7 +35,7 @@ spec:
       containers:
         - name: api
           image: localhost:5001/securebank@sha256:0000000000000000000000000000000000000000000000000000000000000000
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000
