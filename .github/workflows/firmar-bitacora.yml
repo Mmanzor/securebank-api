@@ -1,0 +1,102 @@
+name: Preparar bitácora firmada
+on:
+  push:
+    branches:
+      - integracion/preparar-firma-s09-s13
+    paths:
+      - .github/workflows/firmar-bitacora.yml
+permissions:
+  contents: write
+jobs:
+  firmar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Firmar el commit de documentación
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN: 02d32014cd9a8e6da5e0cae1245406d8e8a95873
+          DOC_SOURCE: b44aca746812d87238645aabd0c3bf10084e6603
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          import subprocess
+          import urllib.request
+          
+          repo = os.environ["GITHUB_REPOSITORY"]
+          base = os.environ["EXPECTED_MAIN"]
+          source = os.environ["DOC_SOURCE"]
+          target = "integracion/bitacora-s05-s13-firmada"
+          
+          def git(*args, data=None):
+              return subprocess.check_output(["git", *args], input=data)
+          
+          def digest(*args):
+              return git(*args).decode().strip()
+          
+          if repo != "Mmanzor/securebank-api":
+              raise RuntimeError("Unexpected repository")
+          for ref, expected in (("main", base), (target, base), ("docs/bitacora-s05-s13", source)):
+              if digest("rev-parse", "refs/remotes/origin/" + ref) != expected:
+                  raise RuntimeError("Ref moved: " + ref)
+          
+          os.environ["GIT_INDEX_FILE"] = os.path.join(os.environ["RUNNER_TEMP"], "bitacora.index")
+          git("read-tree", base)
+          root = git("show", base + ":README.md")
+          link = b"[Bit\xc3\xa1cora de las sesiones 05 a 13](Docs/Bitacora/README.md)."
+          heading = b"## Entregas documentadas\n\n"
+          if root.count(heading) != 1 or link in root:
+              raise RuntimeError("Unexpected README structure")
+          prefix = "Docs/Bitacora/"
+          files = {"README.md": root.replace(heading, heading + link + b"\n\n", 1)}
+          for name in ["README.md"] + [f"Sesion_{number:02}.md" for number in range(5, 14)]:
+              path = prefix + name
+              files[path] = git("show", source + ":" + path)
+          
+          for path, contents in files.items():
+              oid = git("hash-object", "-w", "--stdin", data=contents).decode().strip()
+              git("update-index", "--cacheinfo", "100644", oid, path)
+          tree = digest("write-tree")
+          query = """
+          mutation($input: CreateCommitOnBranchInput!) {
+            createCommitOnBranch(input: $input) {
+              commit {
+                oid
+                url
+                tree { oid }
+                parents(first: 2) { nodes { oid } }
+                signature { isValid state }
+              }
+            }
+          }
+          """
+          arguments = {"branch": {"repositoryNameWithOwner": repo, "branchName": target},
+                       "expectedHeadOid": base,
+                       "message": {"headline": "docs: incorpora la bitácora de las sesiones 05 a 13",
+                                   "body": f"Documentación del PR original #9. Versión de origen: {source}."},
+                       "fileChanges": {"additions": [{"path": path, "contents": base64.b64encode(contents).decode()}
+                                                     for path, contents in files.items()]}}
+          request = urllib.request.Request(
+              os.environ["GITHUB_GRAPHQL_URL"],
+              data=json.dumps({"query": query, "variables": {"input": arguments}}).encode(),
+              headers={"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                       "Content-Type": "application/json", "User-Agent": "securebank-bitacora"},
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.load(response)
+          if result.get("errors"):
+              raise RuntimeError(result["errors"])
+          commit = result["data"]["createCommitOnBranch"]["commit"]
+          if (commit["tree"]["oid"] != tree
+              or [p["oid"] for p in commit["parents"]["nodes"]] != [base]
+              or not (commit["signature"] or {}).get("isValid")):
+              raise RuntimeError("Unexpected signed commit: " + str(commit))
+          print(f"SIGNED {commit['oid']} {commit['signature']['state']} ({len(files)} documentation files)")
+          PY
