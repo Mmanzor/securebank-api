@@ -59,7 +59,7 @@ jobs:
           jq -e '.allow == false and .severities.CRITICAL > 0' iac-evidence/before-gate.json
 
       - name: Exigir que pase el gate
-        run: python security/s11/gate.py iac-evidence/before.json
+        run: python security/s11/gate.py iac-evidence/after.json
 
       - name: Guardar reportes y decisiones
         if: always()
