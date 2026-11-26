@@ -1,0 +1,3 @@
+
+# Excluir reportes HTML generados automáticamente por OWASP ZAP
+Docs/Evidencias/**/*.html

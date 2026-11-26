@@ -11,4 +11,11 @@ function canTransfer(authenticatedUserId, originAccountOwnerId) {
   return Boolean(authenticatedUserId) && authenticatedUserId === originAccountOwnerId;
 }
 
-module.exports = { healthCheck, canTransfer };
+
+function canAccessUser(authenticatedUserId, requestedUserId) {
+  return Boolean(authenticatedUserId) &&
+    authenticatedUserId === requestedUserId;
+}
+
+
+module.exports = { healthCheck, canTransfer, canAccessUser };

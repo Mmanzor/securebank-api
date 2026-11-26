@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "SecureBank API - Verificando secretos antes del commit..."
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "ERROR: Gitleaks no está instalado localmente."
+  echo "Instala Gitleaks antes de realizar commits."
+  exit 1
+fi
+
+gitleaks dir --config .gitleaks.toml --redact --exit-code 1 .
+
+if [ $? -ne 0 ]; then
+  echo "ERROR: Se detectaron posibles secretos. Commit bloqueado."
+  exit 1
+fi
+
+echo "Verificación de secretos completada."
+exit 0
