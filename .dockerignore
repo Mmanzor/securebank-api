@@ -1,0 +1,17 @@
+# Build context allowlist. Credentials, Git metadata, caches, and reports stay out.
+**
+!src/
+!src/**
+!package.json
+!package-lock.json
+!docker/
+!docker/serve.js
+.env
+.env.*
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/node_modules
