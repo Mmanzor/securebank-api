@@ -91,6 +91,7 @@ Una nueva ejecución de Semgrep finalizó con cero hallazgos.
 - Artefacto `dast-zap-reports` de GitHub Actions.
 - Pruebas automatizadas en `tests/index.test.js` y `tests/api.test.js`.
 - Configuración de CI en `.github/workflows/ci.yml`.
+- [Ejecución final con DAST](https://github.com/Mmanzor/securebank-api/actions/runs/44647102958) y [reportes originales del laboratorio](https://github.com/Mmanzor/securebank-api/tree/3121d97422a440418ddc3d5417619b8cae9515b3/Docs/Evidencias/Sesion_08).
 
 ## 6. Limitaciones
 

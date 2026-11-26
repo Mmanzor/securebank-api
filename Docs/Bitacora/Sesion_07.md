@@ -1,9 +1,9 @@
 # Sesión 07 — Gestión de secretos con Gitleaks
 
-**Proyecto:** SecureBank API  
-**Asignatura:** DevSecOps  
-**Responsable:** Matías Sepúlveda  
-**Rama:** `feat/sesiones-05-10`  
+**Proyecto:** SecureBank API\
+**Asignatura:** DevSecOps\
+**Responsable:** Matías Sepúlveda\
+**Rama:** `feat/sesiones-05-10`\
 **Estado:** Implementación y validación exitosa
 
 ## 1. Objetivo

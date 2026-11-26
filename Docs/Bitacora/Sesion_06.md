@@ -1,10 +1,10 @@
 # Bitácora — Sesión 06: SCA, CVE y SBOM
 
-**Asignatura:** Sistemas Automatizados DevSecOps  
-**Universidad:** Universidad Bernardo O'Higgins  
-**Proyecto:** SecurePipeline — SecureBank API  
-**Repositorio:** https://github.com/Mmanzor/securebank-api  
-**Rama de trabajo:** `feat/sesiones-05-10`  
+**Asignatura:** Sistemas Automatizados DevSecOps\
+**Universidad:** Universidad Bernardo O'Higgins\
+**Proyecto:** SecurePipeline — SecureBank API\
+**Repositorio:** https://github.com/Mmanzor/securebank-api\
+**Rama de trabajo:** `feat/sesiones-05-10`\
 **Fecha de implementación:** 19 de noviembre de 2026
 
 ## 1. Objetivo de la sesión
@@ -104,4 +104,14 @@ Se actualizó la versión configurada de Trivy desde `0.58.2` a `0.76.2`.
 
 Se mantuvo el procedimiento de descarga y comprobación de integridad mediante SHA-256.
 
-Después de aplicar la corrección
+Después de aplicar la corrección, la instalación de Trivy y el job de SCA finalizaron correctamente.
+
+## 4. Resultados y evidencias
+
+- El escaneo con umbral HIGH/CRITICAL terminó sin bloquear el job. El registro informó `num=0` archivos específicos de lenguajes para el análisis. Esto describe el alcance del escaneo en ese commit.
+- Se publicaron el reporte de vulnerabilidades y el inventario CycloneDX. El job de inventario y el escaneo de vulnerabilidades son pasos distintos.
+- [Ejecución de la corrección](https://github.com/Mmanzor/securebank-api/actions/runs/44623022636) · [Artefacto de Trivy y SBOM](https://github.com/Mmanzor/securebank-api/actions/runs/44623022636/artifacts/14579130708).
+
+## 5. Conclusión
+
+El pipeline quedó configurado para analizar la composición del repositorio y conservar un inventario de componentes. Los resultados corresponden al sistema de archivos del proyecto y al alcance que Trivy reconoció en ese commit.

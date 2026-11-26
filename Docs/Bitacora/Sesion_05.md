@@ -1,10 +1,10 @@
 # Bitácora — Sesión 05: SAST (Static Application Security Testing)
 
-**Asignatura:** Sistemas Automatizados DevSecOps  
-**Universidad:** Universidad Bernardo O'Higgins  
-**Proyecto:** SecurePipeline — SecureBank API  
-**Repositorio:** https://github.com/Mmanzor/securebank-api  
-**Rama de trabajo:** `feat/sesiones-05-10`  
+**Asignatura:** Sistemas Automatizados DevSecOps\
+**Universidad:** Universidad Bernardo O'Higgins\
+**Proyecto:** SecurePipeline — SecureBank API\
+**Repositorio:** https://github.com/Mmanzor/securebank-api\
+**Rama de trabajo:** `feat/sesiones-05-10`\
 **Fecha de implementación:** 19 de noviembre de 2026
 
 ## 1. Objetivo de la sesión
@@ -67,7 +67,7 @@ Después de aplicar las correcciones, se ejecutó nuevamente GitHub Actions.
 - Job `SAST - Semgrep`: exitoso.
 - Estado general del workflow: exitoso.
 
-La ejecución confirma que el análisis SAST se completó sin provocar el bloqueo del pipeline. El número exacto de hallazgos de la segunda ejecución debe confirmarse mediante el reporte JSON correspondiente.
+La ejecución confirma que el análisis SAST se completó sin provocar el bloqueo del pipeline. El registro de la segunda ejecución confirmó 0 hallazgos, incluidos 0 bloqueantes, al ejecutar 242 reglas sobre 17 archivos.
 
 ## 3. Dificultades encontradas
 
@@ -92,7 +92,7 @@ Posteriormente, Semgrep detectó seis referencias modificables en el workflow. E
 **Artefactos:**
 
 - `semgrep-report.json` de la primera ejecución.
-- Reporte de la segunda ejecución, pendiente de comprobación detallada.
+- [Reporte de la segunda ejecución](https://github.com/Mmanzor/securebank-api/actions/runs/44611602673/artifacts/14571598191).
 
 ## 5. Conclusión
 
