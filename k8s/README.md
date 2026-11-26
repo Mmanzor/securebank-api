@@ -7,16 +7,15 @@ Pod Security Admission en modo `restricted`. El Service es interno
 
 | Manifiesto | Cambio y razón |
 | --- | --- |
-| M1 · [Frontend](exercise/frontend-deployment.yaml) | Ejemplo sin `privileged`; usa un digest OCI verificado en vez de un tag mutable. |
+| M1 · [Frontend](exercise/frontend-deployment.yaml) | Ejemplo sin `privileged`; usa el digest OCI verificado para fijar la imagen. |
 | M2 · [API](hardened/deployment.hardened.yaml) | UID y GID 10001, `runAsNonRoot`, seccomp `RuntimeDefault`, sin escalamiento y con todas las capabilities retiradas. |
 | M3 · [Secret](exercise/db-secret.yaml) | El valor se crea en tiempo de ejecución y la API lo referencia mediante `secretKeyRef`. El cluster de prueba cifra Secrets con AES-GCM y se verifica el prefijo del valor almacenado en etcd. |
 | M4 · [Worker](exercise/worker-deployment.yaml) | Define solicitudes y límites de CPU, memoria y almacenamiento efímero, y monta la raíz en solo lectura. |
 | M5 · [ServiceAccount](hardened/serviceaccount.yaml) | No tiene RoleBinding. Se desactiva el montaje automático del token en la ServiceAccount y en el Pod, y se prueba que esa identidad no puede leer Secrets. |
 
 El frontend y el worker son manifiestos de práctica para validación en seco;
-reutilizan la imagen de prueba y no representan aplicaciones independientes.
-El Secret contiene un valor temporal de laboratorio. La API de prueba aún
-no usa una base de datos.
+ambos reutilizan la imagen de prueba.
+El Secret contiene un valor temporal de laboratorio. La API de este ejercicio sirve el endpoint de salud.
 
 ## Comprobaciones
 
@@ -31,8 +30,8 @@ no usa una base de datos.
   El Job del laboratorio prueba HTTP y DNS con el Service desde un cliente
   autorizado. Su aplicación efectiva en otro cluster requiere un CNI que las implemente.
 
-- [Ejecución de GitHub Actions](https://github.com/Mmanzor/securebank-api/actions/runs/45728180959)
-- [Artefacto OCI, digest y reportes](https://github.com/Mmanzor/securebank-api/actions/runs/45728180959/artifacts/15075027547)
+- [Ejecución de GitHub Actions](https://github.com/Mmanzor/securebank-api/actions/runs/45728589475)
+- [Artefacto OCI, digest y reportes](https://github.com/Mmanzor/securebank-api/actions/runs/45728589475/artifacts/15075027547)
 
 Kubesec asignó 10 puntos al Deployment de la API. El manifiesto en esta
 rama fija el digest de la imagen de ese artefacto. El CI vuelve a materializar
