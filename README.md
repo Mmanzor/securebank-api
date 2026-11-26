@@ -9,7 +9,6 @@ Proyecto transversal **SecurePipeline** de la asignatura Sistemas Automatizados 
 - Matías Sepúlveda — Arquitectura y Planificación (**Plan**)
 - Vicente Cosio — Desarrollo y Calidad (**Code / Build**)
 - Marcela Manzor — Pruebas y Aprobación (**Test / Release**)
-- Catalina Garrido — Despliegue y Operaciones (**Deploy / Operate / Monitor**)
 - Franco Pérez (**@DonnyA32**) — Seguridad del Pipeline (**Security Test / CI Security**)
 
 ## Entregas documentadas
