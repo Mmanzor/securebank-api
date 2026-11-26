@@ -1,0 +1,8 @@
+{
+  "sast": {"critical": 1, "high": 0, "medium": 2},
+  "sca": {"critical": 0, "high": 2, "medium": 2},
+  "dast": {"critical": 0, "high": 1, "medium": 2},
+  "secrets": {"count": 0},
+  "coverage": {"percent": 79},
+  "exposure": "public"
+}

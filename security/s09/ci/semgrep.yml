@@ -1,0 +1,13 @@
+rules:
+  - id: securebank-javascript-eval
+    languages: [javascript]
+    message: Evita ejecutar cadenas como código mediante eval.
+    severity: ERROR
+    pattern: eval(...)
+  - id: securebank-process-shell
+    languages: [javascript]
+    message: Evita interpretar comandos con un shell desde el código de la API.
+    severity: ERROR
+    pattern-either:
+      - pattern: require('node:child_process').exec(...)
+      - pattern: require('child_process').exec(...)
