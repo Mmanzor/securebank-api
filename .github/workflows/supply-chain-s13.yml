@@ -21,7 +21,6 @@ permissions:
   contents: read
 
 env:
-  SIGN_IMAGES: 'false'
   SYFT_CHECK_FOR_APP_UPDATE: 'false'
 
 jobs:
@@ -74,7 +73,6 @@ jobs:
           jq -r '"Componentes en CycloneDX: " + (.components | length | tostring)' release/sbom.cdx.json
 
       - name: Firmar digest y adjuntar el SBOM con OIDC
-        if: env.SIGN_IMAGES == 'true'
         shell: bash
         run: |
           image="localhost:5001/securebank@$(jq -r .digest release/build.json)"
