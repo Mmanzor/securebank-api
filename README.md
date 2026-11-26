@@ -14,6 +14,8 @@ Proyecto transversal **SecurePipeline** de la asignatura Sistemas Automatizados 
 
 ## Entregas documentadas
 
+[Bitácora de las sesiones 05 a 13](Docs/Bitacora/README.md).
+
 - **Sesión 01:** `Docs/Ciclo_Trabajo/` — ciclo DevSecOps y distribución de responsabilidades.
 - **Sesión 02:** `Docs/POL-REPO-001.md` — política de repositorios seguros.
 - **Sesión 03:** `Docs/Threat_Modeling/` — DFD, STRIDE, controles y security stories.
