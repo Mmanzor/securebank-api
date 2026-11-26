@@ -62,7 +62,7 @@ jobs:
           
           for path, contents in files.items():
               oid = git("hash-object", "-w", "--stdin", data=contents).decode().strip()
-              git("update-index", "--cacheinfo", "100644", oid, path)
+              git("update-index", "--add", "--cacheinfo", "100644", oid, path)
           tree = digest("write-tree")
           query = """
           mutation($input: CreateCommitOnBranchInput!) {
