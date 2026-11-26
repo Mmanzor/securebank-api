@@ -1,0 +1,10 @@
+FROM node:24.22.3-trixie@sha256:770709aad57b8fdddbad76e76ce88139b9f8411eff7339bb0d923558498550b4
+
+WORKDIR /app
+COPY src/ ./src/
+COPY docker/serve.js ./docker/serve.js
+
+ENV NODE_ENV=production
+USER root
+EXPOSE 22 3000
+CMD ["node", "docker/serve.js"]

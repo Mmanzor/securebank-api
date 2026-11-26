@@ -1,0 +1,178 @@
+name: S13 - Firma y verificación de SecureBank
+
+on:
+  push:
+    branches:
+      - main
+      - feature/supply-chain-s13
+      - feature/sesion-13-firmada
+    paths:
+      - .github/workflows/supply-chain-s13.yml
+      - 'security/s13/**'
+      - '!security/s13/*.md'
+      - '!security/s13/*.jpg'
+      - 'k8s/hardened/**'
+      - 'k8s/lab/start-kind.sh'
+      - docker/Dockerfile.v2
+      - docker/serve.js
+      - .dockerignore
+      - 'src/**'
+
+permissions:
+  contents: read
+
+env:
+  SYFT_CHECK_FOR_APP_UPDATE: 'false'
+
+jobs:
+  build-and-sign:
+    name: Construir, generar SBOM y firmar
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Instalar utilidades con checksum fijo
+        shell: bash
+        run: |
+          for tool in cosign syft cyclonedx; do
+            bash security/s13/install-tool.sh "$tool" "$RUNNER_TEMP/s13-bin"
+          done
+          echo "$RUNNER_TEMP/s13-bin" >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq skopeo
+
+      - name: Publicar securebank:v1 en el registro del laboratorio
+        shell: bash
+        run: |
+          mkdir -p release
+          bash security/s13/registry.sh "$RUNNER_TEMP/s13-registry"
+          docker buildx build --file docker/Dockerfile.v2 --platform linux/amd64 \
+            --provenance=false --sbom=false --build-arg SOURCE_DATE_EPOCH=1767225600 \
+            --output "type=oci,rewrite-timestamp=true,dest=$RUNNER_TEMP/securebank-v1.tar" .
+          skopeo copy --preserve-digests --dest-tls-verify=false \
+            "oci-archive:$RUNNER_TEMP/securebank-v1.tar" docker://localhost:5001/securebank:v1
+          digest=$(skopeo inspect --tls-verify=false --format '{{.Digest}}' docker://localhost:5001/securebank:v1)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -n --arg digest "$digest" --arg commit "$GITHUB_SHA" \
+            --arg workflow "$GITHUB_WORKFLOW_REF" --arg run "$GITHUB_RUN_ID" \
+            '{digest:$digest,commit:$commit,workflow:$workflow,run:$run,tag:"securebank:v1"}' > release/build.json
+          printf 'Imagen publicada: localhost:5001/securebank@%s\n' "$digest"
+
+      - name: Generar y validar CycloneDX JSON
+        shell: bash
+        run: |
+          syft scan "oci-archive:$RUNNER_TEMP/securebank-v1.tar" -o cyclonedx-json=release/sbom.cdx.json
+          jq -e '.bomFormat == "CycloneDX" and (.components | length > 0)' release/sbom.cdx.json
+          version=$(jq -r '.specVersion | "v" + sub("\\."; "_")' release/sbom.cdx.json)
+          cyclonedx validate --input-file release/sbom.cdx.json --input-format json \
+            --input-version "$version" --fail-on-errors
+          jq -r '"Componentes en CycloneDX: " + (.components | length | tostring)' release/sbom.cdx.json
+
+      - name: Firmar digest y adjuntar el SBOM con OIDC
+        shell: bash
+        run: |
+          image="localhost:5001/securebank@$(jq -r .digest release/build.json)"
+          cosign sign --yes --allow-http-registry --bundle release/signature.bundle.json "$image"
+          cosign attest --yes --allow-http-registry --type cyclonedx \
+            --predicate release/sbom.cdx.json --bundle release/sbom.bundle.json "$image"
+
+      - name: Conservar el estado OCI del registro
+        shell: bash
+        run: |
+          docker stop securebank-registry
+          sudo tar -czf "$GITHUB_WORKSPACE/release/registry.tar.gz" -C "$RUNNER_TEMP/s13-registry" .
+          sudo chmod a+r "$GITHUB_WORKSPACE/release/registry.tar.gz"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: securebank-s13-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+  verify:
+    name: Verificar Cosign, Rekor y attestation
+    needs: build-and-sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      image: ${{ steps.cosign.outputs.image }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: securebank-s13-release
+          path: release
+
+      - name: Restaurar registro e instalar Cosign
+        shell: bash
+        run: |
+          bash security/s13/install-tool.sh cosign "$RUNNER_TEMP/s13-bin"
+          echo "$RUNNER_TEMP/s13-bin" >> "$GITHUB_PATH"
+          bash security/s13/registry.sh "$RUNNER_TEMP/s13-registry" release/registry.tar.gz
+
+      - name: Verificar identidad, firma y CycloneDX
+        id: cosign
+        shell: bash
+        run: bash security/s13/verify.sh release proof
+
+      - name: Guardar evidencia de la compuerta
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: securebank-s13-verification
+          path: proof/
+          if-no-files-found: warn
+          retention-days: 30
+
+  deploy:
+    name: Staging local con admisión por digest
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: securebank-s13-release
+          path: release
+
+      - name: Preparar Kind y el registro verificado
+        shell: bash
+        run: |
+          bash security/s13/install-tool.sh kind "$RUNNER_TEMP/s13-bin"
+          echo "$RUNNER_TEMP/s13-bin" >> "$GITHUB_PATH"
+          cd "$RUNNER_TEMP/s13-bin"
+          curl -fsSLO https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl
+          curl -fsSLO https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl.sha256
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c -
+          chmod +x kubectl
+          cd "$GITHUB_WORKSPACE"
+          bash security/s13/registry.sh "$RUNNER_TEMP/s13-registry" release/registry.tar.gz
+
+      - name: Probar admisión y desplegar el digest verificado
+        shell: bash
+        env:
+          VERIFIED_IMAGE: ${{ needs.verify.outputs.image }}
+        run: |
+          mkdir -p staging-evidence
+          bash security/s13/staging.sh "$VERIFIED_IMAGE" "$RUNNER_TEMP/s13-staging" \
+            | tee staging-evidence/runtime.txt
+          cp "$RUNNER_TEMP/s13-staging/denied.txt" staging-evidence/
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: securebank-s13-staging
+          path: staging-evidence/
+          if-no-files-found: error
+
+      - name: Cerrar el clúster temporal
+        if: always()
+        run: |
+          if command -v kind >/dev/null; then kind delete cluster --name securebank; fi
+          docker rm -f securebank-registry || true

@@ -18,6 +18,10 @@ Proyecto transversal **SecurePipeline** de la asignatura Sistemas Automatizados 
 - **Sesión 03:** `Docs/Threat_Modeling/` — DFD, STRIDE, controles y security stories.
 - **Sesión 04:** `Docs/Pipeline_CI/` — arquitectura CI v1.0 y análisis del pipeline inseguro.
 - **Sesión 09:** [Security Policy v1.0](security/s09/README.md) — política, consolidación de reportes y pruebas del gate.
+- **Sesión 10:** [Seguridad de contenedores y Docker](docker/REPORT.md) — comparación de imágenes y resultados de Trivy.
+- **Sesión 11:** [Seguridad de infraestructura como código](terraform/README.md) — Terraform, Checkov y evidencia del gate.
+- **Sesión 12:** [Kubernetes y seguridad cloud-native](k8s/README.md) — Deployment endurecido y evidencia en Kind.
+- **Sesión 13:** [Seguridad de la cadena de suministro](security/s13/ANALISIS.md) — SBOM, Cosign, Rekor y admisión por digest.
 
 ## Pipeline CI v1.0
 
