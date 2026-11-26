@@ -1,0 +1,12 @@
+title = "SecureBank API - Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Archivos generados y dependencias"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/'''
+]
