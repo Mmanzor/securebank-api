@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securebank-worker
+  namespace: securebank
+  labels:
+    app.kubernetes.io/name: securebank-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: securebank-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: securebank-worker
+    spec:
+      serviceAccountName: securebank-api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: securebank-worker
+      containers:
+        - name: worker
+          image: localhost:5001/securebank@sha256:6b0c81d914209caada8084eb5d8f1b7e8bbdc3274b854db74c6fbb81dad31100
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: securebank-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 32Mi

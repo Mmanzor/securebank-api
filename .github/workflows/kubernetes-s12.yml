@@ -1,0 +1,121 @@
+name: S12 - Kubernetes endurecido
+
+on:
+  push:
+    branches:
+      - main
+      - feature/kubernetes-hardening-s12
+      - feature/sesion-12-firmada
+    paths:
+      - '.github/workflows/kubernetes-s12.yml'
+      - 'k8s/**'
+      - '!k8s/README.md'
+      - 'docker/Dockerfile.v2'
+      - 'docker/serve.js'
+      - '.dockerignore'
+      - 'src/**'
+  pull_request:
+    branches:
+      - main
+      - feature/iac-security-s11
+    paths:
+      - '.github/workflows/kubernetes-s12.yml'
+      - 'k8s/**'
+      - '!k8s/README.md'
+      - 'docker/Dockerfile.v2'
+      - 'docker/serve.js'
+      - '.dockerignore'
+      - 'src/**'
+
+permissions:
+  contents: read
+
+jobs:
+  hardening:
+    name: kube-score, Kubesec y Kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Instalar herramientas de validación
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/s12-bin"
+          cd "$RUNNER_TEMP/s12-bin"
+          curl -fsSL https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64 -o kind
+          echo 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  kind' | sha256sum -c -
+          curl -fsSL https://github.com/zegl/kube-score/releases/download/v1.20.0/kube-score_1.20.0_linux_amd64 -o kube-score
+          echo 'a1dbb75fa02707ece54c4bb01bc2ff1c7425b4503fc52c808f149745b587308a  kube-score' | sha256sum -c -
+          curl -fsSL https://github.com/controlplaneio/kubesec/releases/download/v2.15.0/kubesec_linux_amd64.tar.gz -o kubesec.tar.gz
+          echo '69a03d83c53112499971755de4741d149d9ed0ab5cdea4682efb5cf95c6ef8e7  kubesec.tar.gz' | sha256sum -c -
+          tar -xzf kubesec.tar.gz kubesec
+          curl -fsSLO https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl
+          curl -fsSLO https://dl.k8s.io/release/v1.36.4/bin/linux/amd64/kubectl.sha256
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c -
+          chmod +x kind kube-score kubesec kubectl
+          echo "$RUNNER_TEMP/s12-bin" >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq skopeo
+
+      - name: Construir imagen OCI y publicar en registro local
+        shell: bash
+        run: |
+          mkdir -p s12-evidence/deploy s12-evidence/exercise
+          docker run -d -p 127.0.0.1:5001:5000 --name securebank-registry registry:3
+          docker buildx build --file docker/Dockerfile.v2 --platform linux/amd64 \
+            --provenance=false --sbom=false --build-arg SOURCE_DATE_EPOCH=1767225600 \
+            --output type=oci,rewrite-timestamp=true,dest=s12-evidence/securebank-s12.oci.tar .
+          skopeo copy --preserve-digests --dest-tls-verify=false \
+            oci-archive:s12-evidence/securebank-s12.oci.tar docker://localhost:5001/securebank:lab
+          digest=$(skopeo inspect --tls-verify=false --format '{{.Digest}}' docker://localhost:5001/securebank:lab)
+          echo "$digest" | tee s12-evidence/image-digest.txt
+          grep -Eq '^sha256:[0-9a-f]{64}$' s12-evidence/image-digest.txt
+          cp k8s/hardened/*.yaml s12-evidence/deploy/
+          cp k8s/exercise/*.yaml s12-evidence/exercise/
+          cp k8s/lab/client.yaml s12-evidence/client.yaml
+          sed -i -E "s|localhost:5001/securebank@sha256:[0-9a-f]{64}|localhost:5001/securebank@$digest|g" \
+            s12-evidence/deploy/deployment.hardened.yaml s12-evidence/exercise/*-deployment.yaml s12-evidence/client.yaml
+
+      - name: Evaluar con kube-score y Kubesec
+        shell: bash
+        run: |
+          kube-score score --output-format json s12-evidence/deploy/*.yaml s12-evidence/client.yaml > s12-evidence/kube-score.json
+          for manifest in s12-evidence/deploy/deployment.hardened.yaml s12-evidence/exercise/*-deployment.yaml; do
+            name=$(basename "$manifest" .yaml)
+            kubesec scan "$manifest" > "s12-evidence/kubesec-$name.json"
+            jq -e 'length == 1 and .[0].score > 0' "s12-evidence/kubesec-$name.json"
+          done
+
+      - name: Aplicar en un Kind aislado
+        shell: bash
+        run: |
+          bash k8s/lab/start-kind.sh "$RUNNER_TEMP/s12-kind"
+          kubectl apply -f s12-evidence/deploy/namespace.yaml
+          password_file="$RUNNER_TEMP/s12-kind/password"
+          (umask 077; openssl rand -hex 32 > "$password_file")
+          kubectl -n securebank create secret generic securebank-db --from-file=password="$password_file"
+          rm -f "$password_file"
+          kubectl apply --dry-run=server -f s12-evidence/exercise/
+          kubectl apply -f s12-evidence/deploy/
+          bash k8s/lab/verify.sh | tee s12-evidence/runtime.txt
+          kubectl apply -f s12-evidence/client.yaml
+          kubectl -n securebank wait --for=condition=complete job/securebank-probe --timeout=70s
+          kubectl -n securebank logs job/securebank-probe | tee s12-evidence/service.txt
+          mv restricted.txt s12-evidence/
+          kubectl -n securebank get deployments,services,pods,networkpolicies > s12-evidence/objects.txt
+
+      - name: Guardar imagen y evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securebank-s12-${{ github.sha }}
+          path: s12-evidence/
+          if-no-files-found: warn
+
+      - name: Cerrar laboratorio
+        if: always()
+        run: |
+          if command -v kind >/dev/null; then kind delete cluster --name securebank; fi
+          docker rm -f securebank-registry || true
