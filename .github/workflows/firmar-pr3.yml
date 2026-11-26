@@ -60,7 +60,7 @@ jobs:
               "variables": {"input": {
                   "branch": {
                       "repositoryNameWithOwner": os.environ["GITHUB_REPOSITORY"],
-                      "refName": os.environ["TARGET_BRANCH"],
+                      "branchName": os.environ["TARGET_BRANCH"],
                   },
                   "expectedHeadOid": base,
                   "message": {
