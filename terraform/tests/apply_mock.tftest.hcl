@@ -1,4 +1,20 @@
-mock_provider "aws" {}
+mock_provider "aws" {
+  mock_resource "aws_kms_key" {
+    defaults = { arn = "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-4000-8000-000000000001" }
+  }
+
+  mock_resource "aws_iam_role" {
+    defaults = { arn = "arn:aws:iam::123456789012:role/securebank-s11-mock" }
+  }
+
+  mock_resource "aws_cloudwatch_log_group" {
+    defaults = { arn = "arn:aws:logs:us-east-1:123456789012:log-group:/securebank/securebank-s11/mock" }
+  }
+
+  mock_resource "aws_sns_topic" {
+    defaults = { arn = "arn:aws:sns:us-east-1:123456789012:securebank-s11-mock" }
+  }
+}
 
 variables {
   account_id = "123456789012"
