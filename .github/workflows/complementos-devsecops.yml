@@ -117,3 +117,42 @@ jobs:
           path: reports/secrets/
           retention-days: 30
           if-no-files-found: error
+
+  academic-reports:
+    name: S08 y S11 - Informes PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Renderizar evidencia nativa y PDFs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p entrega
+          python -m pip install 'reportlab==4.4.4'
+          browser=$(command -v google-chrome || command -v chromium)
+          "$browser" --headless --no-sandbox --disable-gpu --window-size=1400,850 \
+            --screenshot="$PWD/entrega/zap-dashboard.png" "file://$PWD/Docs/Evidencias/Sesion_08/zap-final.html"
+          # La página remota solo se incorpora cuando el DOM confirma los jobs históricos.
+          run_url=https://github.com/Mmanzor/securebank-api/actions/runs/45727010153
+          if timeout 35 "$browser" --headless --no-sandbox --disable-gpu --dump-dom "$run_url" > "$RUNNER_TEMP/iac-run.html" 2>/dev/null \
+            && grep -q 'Checkov' "$RUNNER_TEMP/iac-run.html" \
+            && grep -q 'Terraform' "$RUNNER_TEMP/iac-run.html" \
+            && grep -q '45727010153' "$RUNNER_TEMP/iac-run.html"; then
+            timeout 35 "$browser" --headless --no-sandbox --disable-gpu --window-size=1450,1000 \
+              --screenshot="$PWD/entrega/iac-pipeline.png" "$run_url" || rm -f entrega/iac-pipeline.png
+          fi
+          python security/complementos/academic-reports.py entrega
+          cp Docs/Evidencias/Sesion_08/report.json entrega/
+          cp Docs/Evidencias/Sesion_08/zap-openapi.json entrega/
+          python -m pip install 'pypdf==6.1.1'
+          python -c 'from pathlib import Path; from pypdf import PdfReader; files=list(Path("entrega").glob("*.pdf")); assert len(files)==2; assert all(2<=len(PdfReader(str(p)).pages)<=3 for p in files)'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: s08-s11-entregables
+          path: entrega/
+          retention-days: 30
+          if-no-files-found: error

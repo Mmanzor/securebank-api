@@ -30,3 +30,6 @@ sesión indica su rama y conserva enlaces a las evidencias del laboratorio.
 ## Complementos de revisión
 
 [Índice de entregables y alcance](REVISION-ENTREGABLES.md) · [Sesión 01: activos y amenazas](../Ciclo_Trabajo/ACTIVOS-AMENAZAS.md) · [S05: clasificación OWASP](Sesion_05_Anexo.md) · [S06: política CVSS](Sesion_06_Anexo.md) · [S07: procedimiento de secretos](../SECRETS.md).
+
+[S08: tabla, mitigación y JSON original](../Evidencias/Sesion_08/ENTREGA.md) · [S11: informe de auditoría](Sesion_11_Informe.md) · [Workflow complementario](../../.github/workflows/complementos-devsecops.yml).
+Los PDFs y reportes nuevos se publican como artefactos de ejecución; revisar el resultado antes de incorporarlos como evidencia definitiva.
