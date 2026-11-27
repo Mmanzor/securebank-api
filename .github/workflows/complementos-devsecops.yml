@@ -1,0 +1,119 @@
+name: Complementos de evidencia DevSecOps
+on:
+  push:
+    branches: [feature/complementos-devsecops]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'security/complementos/**'
+      - '.github/workflows/complementos-devsecops.yml'
+permissions:
+  contents: read
+jobs:
+  sast-replay:
+    name: S05 - SARIF histórico reproducido
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Reanalizar revisiones históricas con la misma versión
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'semgrep==1.145.0'
+          mkdir -p reports/sast
+          output="$PWD/reports/sast"
+          for phase in before after; do
+            ref=8f06088847edd2b313b74f10296e7b12550b1347
+            if [[ "$phase" == after ]]; then ref=02aa4626a8dff8a564351dd00914326d3779dcb6; fi
+            git cat-file -e "$ref^{commit}" || git fetch origin "$ref"
+            git worktree add --detach "$RUNNER_TEMP/sast-$phase" "$ref"
+            (cd "$RUNNER_TEMP/sast-$phase" && semgrep scan --config auto --sarif --output "$output/sast-$phase.sarif")
+            printf '%s %s\n' "$phase" "$ref" >> "$output/revisiones.txt"
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Hallazgos:",sum(len(r.get("results",[])) for r in d["runs"]))' "$output/sast-$phase.sarif"
+          done
+          semgrep --version >> "$output/revisiones.txt"
+          date -u >> "$output/revisiones.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: s05-sarif-reproducido
+          path: reports/sast/
+          retention-days: 30
+          if-no-files-found: error
+  sca:
+    name: S06 - SPDX 2.3 y reporte CVSS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Generar inventario y auditoría nativa
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          npm sbom --sbom-format spdx --package-lock-only --omit=dev > reports/securebank-sbom.spdx.json
+          code=0
+          npm audit --omit=dev --json > reports/securebank-vulns.json || code=$?
+          test "$code" -le 1
+          python3 security/complementos/sca-report.py reports
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: s06-sbom-y-vulnerabilidades
+          path: reports/
+          retention-days: 30
+          if-no-files-found: error
+  secret-control:
+    name: S07 - control negativo Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Instalar Gitleaks verificado
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=8.30.1
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${version}"
+          curl -fsSL --retry 3 "$url/$archive" -o "$RUNNER_TEMP/$archive"
+          curl -fsSL --retry 3 "$url/gitleaks_${version}_checksums.txt" -o "$RUNNER_TEMP/checksums.txt"
+          (cd "$RUNNER_TEMP"; grep -F "$archive" checksums.txt | sha256sum -c -; tar -xzf "$archive" gitleaks)
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Probar detección de un marcador ficticio y escaneo limpio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/secrets "$RUNNER_TEMP/fixture-secret"
+          cat > "$RUNNER_TEMP/fixture-rule.toml" <<'TOML'
+          title = "Prueba inerte"
+          [[rules]]
+          id = "securebank-test-marker"
+          description = "Marcador de laboratorio sin privilegios"
+          regex = '''LAB[0-9]{8}END'''
+          TOML
+          printf '%s%s%s\n' LAB 12345678 END > "$RUNNER_TEMP/fixture-secret/marker.txt"
+          code=0
+          gitleaks dir --config "$RUNNER_TEMP/fixture-rule.toml" --redact --exit-code 1 --report-format json --report-path reports/secrets/control-negativo.json "$RUNNER_TEMP/fixture-secret" || code=$?
+          test "$code" -eq 1
+          jq -e 'length == 1 and .[0].RuleID == "securebank-test-marker"' reports/secrets/control-negativo.json
+          printf 'Código de bloqueo observado: %s\n' "$code" > reports/secrets/resultado.txt
+          rm "$RUNNER_TEMP/fixture-secret/marker.txt"
+          gitleaks dir --config "$RUNNER_TEMP/fixture-rule.toml" --redact --exit-code 1 --report-format json --report-path reports/secrets/control-limpio.json "$RUNNER_TEMP/fixture-secret"
+          printf 'Código de control limpio: 0\n' >> reports/secrets/resultado.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: s07-control-negativo
+          path: reports/secrets/
+          retention-days: 30
+          if-no-files-found: error
