@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install 'semgrep==1.145.0'
+          python -m pip install 'semgrep==1.187.0'
           mkdir -p reports/sast
           output="$PWD/reports/sast"
           for phase in before after; do
