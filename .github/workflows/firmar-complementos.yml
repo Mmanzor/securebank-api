@@ -1,0 +1,84 @@
+name: Firmar complementos DevSecOps
+on:
+  push:
+    branches: [integracion/firmar-complementos]
+    paths: [.github/workflows/firmar-complementos.yml]
+permissions:
+  contents: read
+jobs:
+  firmar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reproducir exactamente el árbol aprobado mediante commits firmados
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN: 8dab202924f69dd8450f6cea576cc5c896da543b
+          SOURCE_SHA: b59a5413d19f7aec0b67da7c9cfab35305299be1
+          TARGET: feature/complementos-devsecops-firmados
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, subprocess, urllib.request
+          repo=os.environ["GITHUB_REPOSITORY"]
+          base=os.environ["EXPECTED_MAIN"]
+          source=os.environ["SOURCE_SHA"]
+          target=os.environ["TARGET"]
+          if repo!="Mmanzor/securebank-api" or target!="feature/complementos-devsecops-firmados":
+              raise RuntimeError("Unexpected repository/branch")
+          def git(*args):
+              return subprocess.check_output(["git",*args])
+          def gt(*args):
+              return git(*args).decode().strip()
+          for name,expected in [("main",base),("feature/complementos-devsecops",source),(target,base)]:
+              if gt("rev-parse","refs/remotes/origin/"+name)!=expected:
+                  raise RuntimeError("Ref moved: "+name)
+          if gt("merge-base",base,source)!=base:
+              raise RuntimeError("Source no longer based on expected main")
+          files=git("diff","--name-only","--no-renames","-z",base,source).decode().strip("\0").split("\0")
+          mutation="""mutation($input: CreateCommitOnBranchInput!) {
+            createCommitOnBranch(input:$input) {commit {oid url tree {oid} parents(first:2){nodes{oid}} signature{isValid state}}}
+          }"""
+          def graphql(variables):
+              req=urllib.request.Request(os.environ["GITHUB_GRAPHQL_URL"],data=json.dumps({"query":mutation,"variables":variables}).encode(),headers={"Authorization":"Bearer "+os.environ["GITHUB_TOKEN"],"Content-Type":"application/json","User-Agent":"securebank-signed-complementos"})
+              with urllib.request.urlopen(req,timeout=90) as res:
+                  data=json.load(res)
+              if data.get("errors"):
+                  raise RuntimeError(data["errors"])
+              return data["data"]["createCommitOnBranch"]["commit"]
+          # Split payloads conservatively, leaving large native SARIF files intact.
+          groups=[]
+          adds=[]; deletes=[]; size=0
+          for path in files:
+              entry=gt("ls-tree",source,"--",path)
+              content=None
+              if entry:
+                  if not entry.startswith("100644 blob "):
+                      raise RuntimeError("Unexpected mode: "+path)
+                  content=base64.b64encode(git("show",source+":"+path)).decode()
+              n=len(content or "")
+              if size+n>3300000 and (adds or deletes):
+                  groups.append((adds,deletes)); adds=[]; deletes=[]; size=0
+              if content is None:
+                  deletes.append({"path":path})
+              else:
+                  adds.append({"path":path,"contents":content}); size+=n
+          if adds or deletes: groups.append((adds,deletes))
+          head=base
+          for i,(adds,deletes) in enumerate(groups,1):
+              result=graphql({"input":{"branch":{"repositoryNameWithOwner":repo,"branchName":target},"expectedHeadOid":head,"message":{"headline":f"DevSecOps: integrar complementos verificados ({i}/{len(groups)})","body":"Reproducción exacta de los archivos del PR #18; revisión original "+source},"fileChanges":{"additions":adds,"deletions":deletes}}})
+              if [p["oid"] for p in result["parents"]["nodes"]]!=[head] or not (result["signature"] or {}).get("isValid"):
+                  raise RuntimeError("Commit not verified")
+              head=result["oid"]
+              print("SIGNED",head,result["signature"]["state"],flush=True)
+          expected_tree=gt("rev-parse",source+"^{tree}")
+          if result["tree"]["oid"]!=expected_tree:
+              raise RuntimeError("Final tree differs")
+          print("FINAL_TREE_MATCH",expected_tree,head,flush=True)
+          PY
