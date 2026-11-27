@@ -26,3 +26,7 @@ La implementación original de las sesiones 05 a 08 está en el
 originales del equipo en `feat/sesiones-05-10`. Las sesiones 09 a 13 se
 trabajaron en ramas encadenadas para revisión. La documentación de cada
 sesión indica su rama y conserva enlaces a las evidencias del laboratorio.
+
+## Complementos de revisión
+
+[Índice de entregables y alcance](REVISION-ENTREGABLES.md) · [Sesión 01: activos y amenazas](../Ciclo_Trabajo/ACTIVOS-AMENAZAS.md) · [S05: clasificación OWASP](Sesion_05_Anexo.md) · [S06: política CVSS](Sesion_06_Anexo.md) · [S07: procedimiento de secretos](../SECRETS.md).
