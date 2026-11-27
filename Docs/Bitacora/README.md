@@ -26,3 +26,10 @@ La implementación original de las sesiones 05 a 08 está en el
 originales del equipo en `feat/sesiones-05-10`. Las sesiones 09 a 13 se
 trabajaron en ramas encadenadas para revisión. La documentación de cada
 sesión indica su rama y conserva enlaces a las evidencias del laboratorio.
+
+## Complementos de revisión
+
+[Índice de entregables y alcance](REVISION-ENTREGABLES.md) · [Sesión 01: activos y amenazas](../Ciclo_Trabajo/ACTIVOS-AMENAZAS.md) · [S05: clasificación OWASP](Sesion_05_Anexo.md) · [S06: política CVSS](Sesion_06_Anexo.md) · [S07: procedimiento de secretos](../SECRETS.md).
+
+[S08: tabla, mitigación y JSON original](../Evidencias/Sesion_08/ENTREGA.md) · [S11: informe de auditoría](Sesion_11_Informe.md) · [Workflow complementario](../../.github/workflows/complementos-devsecops.yml).
+El [workflow complementario exitoso](https://github.com/Mmanzor/securebank-api/actions/runs/45944833584) reprodujo SAST (6 → 0), generó SPDX y auditoría, validó detección de secretos y publicó ambos PDF. Los archivos se conservan en [reports](../../reports/), con sumas SHA-256 y trazabilidad.
