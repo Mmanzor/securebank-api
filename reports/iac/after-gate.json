@@ -1,0 +1,70 @@
+{
+  "allow": true,
+  "resources": 47,
+  "passed": 174,
+  "failed": 11,
+  "score": 94.05,
+  "severities": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 11,
+    "UNREVIEWED": 0
+  },
+  "findings": [
+    {
+      "id": "CKV_AWS_273",
+      "resource": "aws_iam_user.ci",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_173",
+      "resource": "aws_lambda_function.api",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_117",
+      "resource": "aws_lambda_function.api",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_116",
+      "resource": "aws_lambda_function.api",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_272",
+      "resource": "aws_lambda_function.api",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV2_AWS_69",
+      "resource": "aws_db_instance.postgres",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_144",
+      "resource": "aws_s3_bucket.backups",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_144",
+      "resource": "aws_s3_bucket.logs",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV2_AWS_62",
+      "resource": "aws_s3_bucket.backups",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV2_AWS_62",
+      "resource": "aws_s3_bucket.logs",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "CKV_AWS_145",
+      "resource": "aws_s3_bucket.logs",
+      "severity": "MEDIUM"
+    }
+  ]
+}
