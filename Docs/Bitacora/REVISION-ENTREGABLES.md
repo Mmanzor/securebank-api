@@ -13,3 +13,10 @@
 | 13 | [Firma y verificación](../../security/s13/ANALISIS.md). Se conserva la arquitectura de laboratorio, no se afirma un despliegue productivo. |
 
 Los resultados de laboratorio históricos se distinguen de los controles propuestos. Esta revisión no atribuye trabajo nuevo a integrantes ni modifica la lista de autores.
+## Evidencias complementarias verificadas
+
+- [SAST, SCA, Gitleaks y PDF: ejecución exitosa](https://github.com/Mmanzor/securebank-api/actions/runs/45944833584).
+- [S07: bloqueo remoto con empaquetado omitido](https://github.com/Mmanzor/securebank-api/actions/runs/45944913434).
+- [CI original verde](https://github.com/Mmanzor/securebank-api/actions/runs/45944833568).
+- [Reglas activas de main](https://github.com/Mmanzor/securebank-api/rules/24343037): revisión aprobatoria, firmas, build-test obligatorio, restricciones de borrado y force-push. No se cambian estas reglas; MFA por usuario no verificado.
+- [Archivos conservados](../../reports/README.md).

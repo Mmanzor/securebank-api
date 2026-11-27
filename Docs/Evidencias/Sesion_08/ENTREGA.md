@@ -12,4 +12,4 @@ La [bitácora S08](../../Bitacora/Sesion_08.md) registra las pruebas de acceso a
 
 El comando CI del plan OpenAPI está versionado en [ci.yml](../../../.github/workflows/ci.yml) y [zap-openapi-ci.yaml](../../../zap-openapi-ci.yaml). El comando exacto de la ejecución histórica de baseline no quedó identificado en los reportes originales: no se presenta una reconstrucción como comando ejecutado.
 
-El complemento de CI produce un PDF de dos páginas y una captura del HTML nativo. La captura se vuelve a renderizar desde el informe real, no representa un nuevo escaneo. El informe se acompaña del JSON original.
+El [complemento de CI](https://github.com/Mmanzor/securebank-api/actions/runs/45944833584) produjo un [PDF de dos páginas](../../../reports/dast/reporte-dast-SecurePipeline.pdf) y una [captura del HTML nativo](../../../reports/dast/zap-dashboard.png). La captura se volvió a renderizar desde el informe real; no representa un nuevo escaneo. El informe se acompaña del JSON original.

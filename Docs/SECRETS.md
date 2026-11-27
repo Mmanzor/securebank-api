@@ -37,4 +37,4 @@ Detectar y registrar tipo, fecha y revisión; revocar inmediatamente en el prove
 
 ## 6. Evidencia y límites
 
-El ensayo local de Gitleaks está documentado en S07. La evidencia remota de un bloqueo debe obtenerse de una ejecución controlada con un marcador inerte, no de una credencial real. El procedimiento de rotación de credenciales reales es una política propuesta; no se declara ejecutado en producción.
+El ensayo local de Gitleaks está documentado en S07. La [prueba de detección y control limpio](https://github.com/Mmanzor/securebank-api/actions/runs/45944833584) devolvió un hallazgo y luego cero. En la [ejecución negativa aislada](https://github.com/Mmanzor/securebank-api/actions/runs/45944913434), Gitleaks falló y el empaquetado quedó omitido. La rama evidencia/s07-bloqueo emplea un marcador inerte, no una credencial real. Los reportes redactados se conservan en [reports/secrets](../reports/secrets/). El procedimiento de rotación de credenciales reales es una política propuesta; no se declara ejecutado en producción.

@@ -1,3 +1,11 @@
 
 # Excluir reportes HTML generados automáticamente por OWASP ZAP
 Docs/Evidencias/**/*.html
+
+# Salidas de herramientas: evidencia, no código fuente ejecutable.
+/reports/sast/
+/reports/iac/
+/reports/dast/
+/reports/secrets/
+/reports/securebank-sbom.spdx.json
+/reports/securebank-vulns.json

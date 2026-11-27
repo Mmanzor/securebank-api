@@ -18,3 +18,7 @@ Los seis hallazgos reales correspondieron a una debilidad de integridad de la ca
 - [Run inicial](https://github.com/Mmanzor/securebank-api/actions/runs/44609621715) y [run posterior](https://github.com/Mmanzor/securebank-api/actions/runs/44611602673).
 
 El artefacto original ya no aparece en la consulta de artefactos de esos runs. Una reproducción posterior debe identificar las revisiones, fecha, versión de Semgrep y reglas; los conteos no tienen por qué coincidir con los históricos. No se convierten resultados narrados en SARIF ficticios.
+
+## Reproducción del 27/11/2026
+
+Semgrep 1.187.0, con reglas auto y los dos commits históricos, reprodujo 6 hallazgos iniciales y 0 finales. Se conservan [sast-before.sarif](../../reports/sast/sast-before.sarif), [sast-after.sarif](../../reports/sast/sast-after.sarif) y [revisiones.txt](../../reports/sast/revisiones.txt). [Run exitoso](https://github.com/Mmanzor/securebank-api/actions/runs/45944833584). La versión 1.145.0 del primer intento no inició por incompatibilidad con Pydantic; se reemplazó por 1.187.0, validada en el CI original.
